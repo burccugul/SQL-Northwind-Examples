@@ -1,0 +1,114 @@
+
+-- ürüne en çok ne kadar ödenmiş -- the most money which was paid for the product
+SELECT P.ProductName,MAX(P.UnitPrice) FROM Products P 
+INNER JOIN  [Order Details] O  ON P.ProductID = O.ProductID 
+WHERE P.ProductID=2 
+GROUP BY P.ProductName
+
+-- alınmayan ürün var mı -- are there any product that did not bought
+SELECT P.ProductID, P.ProductName, O.Quantity, O.UnitPrice FROM Products P 
+LEFT JOIN [Order Details] O ON P.ProductID = O.ProductID 
+WHERE O.Quantity = ''
+
+-- ürünlerin kaç defa alındığı -- how many times products are bought
+SELECT P.ProductID,P.ProductName, COUNT(P.UnitPrice) FROM Products P 
+INNER JOIN  [Order Details] O  ON P.ProductID = O.ProductID 
+GROUP BY P.ProductID,P.ProductName
+
+-- ürüne göre en çok para ödeyen -- the person who spend much money on product
+SELECT S.CompanyName, P.ProductName, MAX(P.UnitPrice) FROM Suppliers S 
+INNER JOIN Products P ON S.SupplierID = P.SupplierID 
+INNER JOIN [Order Details] O ON P.ProductID = O.ProductID 
+WHERE P.ProductID = 14
+GROUP BY  S.CompanyName,P.ProductName
+
+-- hiç satın alınmayan ürün --  are there any product that did not bought
+SELECT P.ProductName FROM Products P 
+WHERE NOT EXISTS (SELECT  ProductID 
+FROM [Order Details] O WHERE P.ProductID = O.ProductID)
+
+-- en çok alışveriş yapanların büyükten küçüğe -- top customers for quantity
+SELECT Orders.CustomerID , COUNT(Orders.CustomerID) 
+FROM Orders GROUP BY CustomerID ORDER BY COUNT(Orders.CustomerID) DESC
+
+-- en çok para ödeyenlerin büyükten küçüğe -- top customers for money
+SELECT  Customers.[CompanyName], Customers.CustomerID, SUM([Order Details].Quantity*[Order Details].UnitPrice ) 
+FROM Customers INNER JOIN  Orders ON Customers.CustomerID = Orders.[CustomerID],[Order Details]
+WHERE [Order Details].OrderID = Orders.OrderID 
+GROUP BY Orders.CustomerID, Customers.[CompanyName], Customers.CustomerID
+ORDER BY SUM([Order Details].Quantity*[Order Details].UnitPrice ) DESC
+
+-- en çok para ödeyen check etme -- top customers for money checking
+SELECT Customers.CustomerID, Orders.OrderID, SUM([Order Details].Quantity* [Order Details].UnitPrice)
+FROM  Customers INNER JOIN Orders ON Customers.CustomerID = Orders.CustomerID 
+INNER JOIN [Order Details] ON [Order Details].OrderID = Orders.OrderID
+WHERE Customers.CustomerID ='QUICK'
+GROUP BY Customers.CustomerID, Orders.OrderID
+
+-- en çok satış yapan çalışan -- top employees
+SELECT  Employees.FirstName, Employees.LastName,Employees.EmployeeID, SUM([Order Details].Quantity*[Order Details].UnitPrice ) 
+FROM Employees INNER JOIN  Orders ON Employees.EmployeeID = Orders.EmployeeID,[Order Details]
+WHERE [Order Details].OrderID = Orders.OrderID 
+GROUP BY  Employees.EmployeeID, Employees.FirstName, Employees.LastName
+ORDER BY SUM([Order Details].Quantity*[Order Details].UnitPrice ) DESC
+
+-- en çok satış yapan çalışan check etme -- top employees checking
+SELECT Employees.FirstName, Employees.LastName,Employees.EmployeeID, SUM([Order Details].Quantity* [Order Details].UnitPrice)
+FROM  Employees INNER JOIN Orders ON Employees.EmployeeID = Orders.EmployeeID
+INNER JOIN [Order Details] ON [Order Details].OrderID = Orders.OrderID
+WHERE Employees.EmployeeID = 4
+GROUP BY Employees.EmployeeID, Employees.FirstName, Employees.LastName
+
+-- en çok satış yapılan ülkeler -- top countries for quantity
+SELECT Orders.ShipCountry , COUNT(Orders.ShipCountry ) FROM Orders 
+GROUP BY Orders.ShipCountry ORDER BY COUNT(Orders.ShipCountry) DESC
+
+-- en çok ciro kazandıran ülkeler -- top countries for money
+SELECT top 5 Customers.Country, SUM([Order Details].Quantity* [Order Details].UnitPrice)
+FROM Customers INNER JOIN Orders ON Customers.CustomerID = Orders.CustomerID ,[Order Details]
+WHERE [Order Details].OrderID = Orders.OrderID 
+GROUP BY Customers.Country
+ORDER BY SUM([Order Details].Quantity*[Order Details].UnitPrice ) DESC
+
+-- en çok ciro kazandıran ülkeler check etme -- top countries for money
+SELECT Customers.Country, SUM([Order Details].Quantity* [Order Details].UnitPrice)
+FROM Customers INNER JOIN Orders ON Customers.CustomerID = Orders.CustomerID 
+INNER JOIN [Order Details] ON [Order Details].OrderID = Orders.OrderID
+WHERE Customers.Country = 'Germany'
+GROUP BY Customers.Country
+
+-- siparişi geciken ürünler -- delayed order products
+SELECT O.OrderID,O.CustomerID, C.CompanyName, CONVERT(VARCHAR, O.ShippedDate,103),CONVERT(VARCHAR, O.RequiredDate,103) ,
+DATEDIFF(DAY,O.RequiredDate ,O.ShippedDate) AS DIFF
+FROM Orders O  INNER JOIN Customers C ON C.CustomerID = O.CustomerID
+WHERE O.ShippedDate > O.RequiredDate
+ORDER BY  DATEDIFF(DAY,O.RequiredDate ,O.ShippedDate) DESC
+
+-- tüm ciro -- all endorsement
+SELECT SUM([Order Details].UnitPrice*[Order Details].Quantity-[Order Details].[Quantity]*[Order Details].[Discount]) FROM [Order Details] 
+
+-- doğum günü olan çalışanlar -- today is the bitrh day for employees
+SELECT * FROM Employees WHERE Employees.BirthDate = MONTH(GETDATE()) AND Employees.BirthDate = DAY(GETDATE())
+
+-- ürün adet gelir -- product unit income
+SELECT P.ProductName, O.Quantity AS QUANTITY, O.Quantity*O.UnitPrice AS REVENUE 
+FROM Products P INNER JOIN [Order Details] O ON O.ProductID = P.ProductID
+
+-- kategoriye göre ürün satışları -- revenue for categories (money)
+SELECT C.CategoryID, C.CategoryName, SUM(O.Quantity*O.UnitPrice) FROM Categories C 
+INNER JOIN Products P ON P.CategoryID = C.CategoryID 
+INNER JOIN [Order Details] O  ON O.ProductID = P.ProductID
+GROUP BY C.CategoryID, C.CategoryName
+
+-- kategoriye göre ürün satışları (miktar) -- revenue for categories (quantity)
+SELECT C.CategoryID, C.CategoryName, SUM(O.Quantity) FROM Categories C 
+INNER JOIN Products P ON P.CategoryID = C.CategoryID 
+INNER JOIN [Order Details] O  ON O.ProductID = P.ProductID
+GROUP BY C.CategoryID, C.CategoryName
+
+-- 10 numaralı ürünün adını güncelleme -- update name for productId = 10
+UPDATE Products SET ProductName = 'Computer' WHERE Products.ProductID = 10
+
+-- selects all customers that are from the same countries as the suppliers
+SELECT * FROM Customers
+WHERE Country IN (SELECT Country FROM Suppliers);
